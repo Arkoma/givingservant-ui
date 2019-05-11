@@ -1,0 +1,67 @@
+plugins {
+    id 'org.springframework.boot' version '2.1.4.RELEASE'
+    id 'java'
+    id 'com.moowork.node' version '1.2.0'
+}
+
+apply plugin: 'io.spring.dependency-management'
+apply plugin: 'java'
+apply plugin: 'com.moowork.node'
+
+group = 'org.goodservant'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencyManagement {
+  imports {
+    mavenBom 'org.springframework.cloud:spring-cloud-dependencies:Greenwich.RELEASE'
+  }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+//clean up
+task cleanClient(type: Delete) {
+  delete 'dist'
+  delete 'src/main/resources/static'
+}
+
+
+// build
+task buildClient(type: NpmTask, dependsOn: 'npmInstall') {
+  group = 'build'
+  description = 'Compile client side assets for production'
+  args = ['run', 'build']
+}
+
+// test
+task clientTest(type: NpmTask, dependsOn: 'npmInstall') {
+  group = 'test'
+  description = 'run ng test'
+  args = ['run','test']
+}
+
+// e2e
+task e2eTest(type: NpmTask, dependsOn: 'npmInstall') {
+  group = 'test'
+  description = 'run ng e2e'
+  args = ['run', 'e2e']
+}
+
+task moveClient(type: Copy) {
+  from 'dist/' + rootProject.name
+  into 'src/main/resources/static'
+}
+
+//cleanClient.dependsOn(clientTest)
+buildClient.dependsOn(cleanClient)
+moveClient.dependsOn(buildClient)
+//bootJar & bootRun depends on processResources
+tasks.processResources.dependsOn(moveClient)
